@@ -3,7 +3,7 @@ import { RecurrenceRule } from '../types/lifeItem';
 
 export const recurrenceService = {
   calculateNextOccurrence(rule: RecurrenceRule, fromDate: Date = new Date()): Date {
-    const start = parseISO(rule.startDate);
+    const start = rule.startDate ? parseISO(rule.startDate) : fromDate;
     let candidate = start > fromDate ? start : fromDate;
 
     switch (rule.frequency) {

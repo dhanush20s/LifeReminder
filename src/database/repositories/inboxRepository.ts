@@ -1,6 +1,6 @@
 import { getDB } from '../connection';
 import { InboxItem, LifeItemType } from '../../types/lifeItem';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID as uuidv4 } from '../../utils/uuid';
 
 export const inboxRepository = {
   async create(content: string): Promise<InboxItem> {

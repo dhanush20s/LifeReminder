@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { colors, spacing, radii, typography } from '../../theme';
 import { useAppDispatch } from '../../store/hooks';
 import { addBrainDump } from '../../store/slices/lifeItemSlice';
+import { BottomSheet } from '../../components/BottomSheet';
 import { 
   Bell, 
   CreditCard, 
@@ -10,19 +11,18 @@ import {
   CheckSquare, 
   Hourglass, 
   Handshake, 
-  MapPin, 
-  FileText, 
-  X,
-  Send
+  Send,
+  Zap,
 } from 'lucide-react-native';
 
 interface QuickAddSheetProps {
   visible: boolean;
   onClose: () => void;
-  navigation: any;
+  navigation?: any;
+  onSelectType?: (type: string) => void;
 }
 
-export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ visible, onClose, navigation }) => {
+export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ visible, onClose, navigation, onSelectType }) => {
   const dispatch = useAppDispatch();
   const [brainDumpText, setBrainDumpText] = useState('');
 
@@ -33,99 +33,82 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ visible, onClose, 
     onClose();
   };
 
-  const handleSelectOption = (route: string) => {
+  const handleSelectOption = (type: string, route: string) => {
     onClose();
-    navigation.navigate(route);
+    if (onSelectType) {
+      onSelectType(type);
+    } else if (navigation) {
+      navigation.navigate(route);
+    }
   };
 
   const options = [
-    { title: 'Reminder', icon: Bell, color: colors.primary, route: 'CreateReminder' },
-    { title: 'Bill', icon: CreditCard, color: colors.warning, route: 'CreateBill' },
-    { title: 'Expense', icon: DollarSign, color: colors.success, route: 'AddExpense' },
-    { title: 'Checklist', icon: CheckSquare, color: colors.accentTeal, route: 'Checklists' },
-    { title: 'Expiry', icon: Hourglass, color: colors.danger, route: 'Expiry' },
-    { title: 'Borrow/Lend', icon: Handshake, color: colors.info, route: 'BorrowReturn' },
+    { title: 'Reminder', type: 'reminder', icon: Bell, color: colors.primary, route: 'CreateReminder' },
+    { title: 'Bill', type: 'bill', icon: CreditCard, color: colors.warning, route: 'Bills' },
+    { title: 'Expense', type: 'expense', icon: DollarSign, color: colors.success, route: 'AddExpense' },
+    { title: 'Checklist', type: 'checklist', icon: CheckSquare, color: colors.accentTeal, route: 'Checklists' },
+    { title: 'Expiry', type: 'expiry', icon: Hourglass, color: colors.danger, route: 'Expiry' },
+    { title: 'Borrow/Lend', type: 'borrow', icon: Handshake, color: colors.info, route: 'BorrowReturn' },
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>What do you want to remember?</Text>
-            <TouchableOpacity onPress={onClose}>
-              <X size={24} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Shortcut Grid */}
-          <View style={styles.grid}>
-            {options.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <TouchableOpacity
-                  key={opt.title}
-                  style={styles.gridItem}
-                  onPress={() => handleSelectOption(opt.route)}
-                >
-                  <View style={[styles.iconCircle, { backgroundColor: `${opt.color}15` }]}>
-                    <Icon size={24} color={opt.color} />
-                  </View>
-                  <Text style={styles.itemTitle}>{opt.title}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Brain Dump Input Box */}
-          <Text style={styles.brainDumpLabel}>Or just type it into Life Inbox...</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g. Renew bike insurance on Sep 20"
-              placeholderTextColor={colors.textMuted}
-              value={brainDumpText}
-              onChangeText={setBrainDumpText}
-              onSubmitEditing={handleBrainDumpSubmit}
-            />
-            <TouchableOpacity style={styles.sendButton} onPress={handleBrainDumpSubmit}>
-              <Send size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      title="What do you want to remember?"
+      icon={<Zap size={20} color="#6366F1" style={{ marginRight: 8 }} />}
+    >
+      <View style={styles.sheetContent}>
+        {/* Shortcut Grid */}
+        <View style={styles.grid}>
+          {options.map((opt) => {
+            const Icon = opt.icon;
+            return (
+              <TouchableOpacity
+                key={opt.title}
+                style={styles.gridItem}
+                onPress={() => handleSelectOption(opt.type, opt.route)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: `${opt.color}15` }]}>
+                  <Icon size={22} color={opt.color} />
+                </View>
+                <Text style={styles.itemTitle}>{opt.title}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </TouchableOpacity>
-    </Modal>
+
+        {/* Brain Dump Input Box */}
+        <Text style={styles.brainDumpLabel}>Or just type it into Life Inbox...</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g. Renew bike insurance on Sep 20"
+            placeholderTextColor={colors.textMuted}
+            value={brainDumpText}
+            onChangeText={setBrainDumpText}
+            onSubmitEditing={handleBrainDumpSubmit}
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleBrainDumpSubmit} activeOpacity={0.8}>
+            <Send size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radii.sheet,
-    borderTopRightRadius: radii.sheet,
-    padding: spacing.default,
-    paddingBottom: spacing.section,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.section,
-  },
-  sheetTitle: {
-    ...typography.title,
-    color: colors.textPrimary,
+  sheetContent: {
+    paddingTop: spacing.compact,
+    paddingBottom: spacing.default,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: spacing.section,
+    marginBottom: spacing.default,
   },
   gridItem: {
     width: '30%',
@@ -138,17 +121,20 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.micro,
+    marginBottom: spacing.micro + 2,
   },
   itemTitle: {
     ...typography.caption,
+    fontSize: 12,
     color: colors.textPrimary,
     fontWeight: '600',
   },
   brainDumpLabel: {
-    ...typography.secondary,
+    ...typography.caption,
+    fontSize: 12,
     color: colors.textSecondary,
     marginBottom: spacing.small,
+    fontWeight: '500',
   },
   inputRow: {
     flexDirection: 'row',
@@ -156,19 +142,23 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
     borderRadius: radii.field,
     paddingHorizontal: spacing.default,
     paddingVertical: spacing.compact,
     ...typography.body,
+    fontSize: 14,
     color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     marginRight: spacing.small,
   },
   sendButton: {
     backgroundColor: colors.primary,
-    padding: spacing.compact,
+    paddingHorizontal: spacing.default,
+    paddingVertical: spacing.compact + 2,
     borderRadius: radii.field,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

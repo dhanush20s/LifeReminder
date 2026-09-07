@@ -67,9 +67,24 @@ export const initDatabase = async (): Promise<void> => {
         reminder_offset_minutes INTEGER DEFAULT 0,
         repeat_rule_id TEXT,
         is_enabled INTEGER DEFAULT 1,
+        notification_id TEXT,
         FOREIGN KEY (life_item_id) REFERENCES life_items(id) ON DELETE CASCADE
       );
     `);
+
+    // Safe Migration for existing DBs
+    tx.executeSql('PRAGMA table_info(reminders);', [], (_, res) => {
+      let hasNotificationId = false;
+      for (let i = 0; i < res.rows.length; i++) {
+        if (res.rows.item(i).name === 'notification_id') {
+          hasNotificationId = true;
+          break;
+        }
+      }
+      if (!hasNotificationId) {
+        tx.executeSql('ALTER TABLE reminders ADD COLUMN notification_id TEXT;');
+      }
+    });
 
     // 4. expense_categories
     tx.executeSql(`
@@ -140,7 +155,7 @@ export const initDatabase = async (): Promise<void> => {
         alarm_time TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        FOREIGN KEY (life_item_id) REFERENCES life_items(id) ON DELETE CASCADE
+        FOREIGN KEY (life_item_id) REFERENCES checklists(id) ON DELETE CASCADE
       );
     `);
 
@@ -198,7 +213,107 @@ export const initDatabase = async (): Promise<void> => {
       );
     `);
 
-    // 12. Seed Sample Data matching Reference Image if life_items is empty
+    // 12. daily_focus
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS daily_focus (
+        id TEXT PRIMARY KEY,
+        date TEXT UNIQUE NOT NULL,
+        text TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // 13. activity_days
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS activity_days (
+        date TEXT PRIMARY KEY,
+        completed_items_count INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+
+    // 14. weather_cache
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS weather_cache (
+        id TEXT PRIMARY KEY,
+        temperature INTEGER NOT NULL,
+        condition TEXT NOT NULL,
+        condition_icon TEXT NOT NULL,
+        location_name TEXT NOT NULL,
+        timestamp TEXT NOT NULL
+      );
+    `);
+
+    // 15. quick_add_shortcuts
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS quick_add_shortcuts (
+        id TEXT PRIMARY KEY,
+        type TEXT UNIQUE NOT NULL,
+        label TEXT NOT NULL,
+        icon_name TEXT NOT NULL,
+        icon_color TEXT NOT NULL,
+        bg_color TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        is_active INTEGER DEFAULT 1
+      );
+    `);
+
+    // 16. inventory_items
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS inventory_items (
+        id TEXT PRIMARY KEY,
+        life_item_id TEXT NOT NULL,
+        quantity INTEGER DEFAULT 1,
+        unit TEXT,
+        location TEXT,
+        purchase_date TEXT,
+        expiry_date TEXT,
+        notes TEXT,
+        FOREIGN KEY (life_item_id) REFERENCES life_items(id) ON DELETE CASCADE
+      );
+    `);
+
+    // 17. parking_records
+    tx.executeSql(`
+      CREATE TABLE IF NOT EXISTS parking_records (
+        id TEXT PRIMARY KEY,
+        life_item_id TEXT NOT NULL,
+        floor TEXT,
+        slot TEXT,
+        location_notes TEXT,
+        parked_at TEXT NOT NULL,
+        FOREIGN KEY (life_item_id) REFERENCES life_items(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Seed default quick_add_shortcuts if empty
+    tx.executeSql('SELECT COUNT(*) as count FROM quick_add_shortcuts;', [], (_, result) => {
+      if (result.rows.item(0).count === 0) {
+        const shortcuts = [
+          ['qa_reminder', 'reminder', 'Reminder', 'Bell', '#6366F1', '#EEF2FF', 0, 1],
+          ['qa_task', 'task', 'Task', 'CheckSquare', '#10B981', '#ECFDF5', 1, 1],
+          ['qa_expense', 'expense', 'Expense', 'IndianRupee', '#EF4444', '#FEF2F2', 2, 1],
+          ['qa_bill', 'bill', 'Bill', 'CreditCard', '#F59E0B', '#FFFBEB', 3, 1],
+          ['qa_note', 'note', 'Note', 'Edit3', '#3B82F6', '#EFF6FF', 4, 1],
+          ['qa_checklist', 'checklist', 'Checklist', 'ListChecks', '#8B5CF6', '#F5F3FF', 5, 0],
+          ['qa_borrow', 'borrow', 'Borrow', 'HandHandshake', '#EC4899', '#FDF2F8', 6, 0],
+          ['qa_expiry', 'expiry', 'Expiry', 'ShieldAlert', '#F97316', '#FFEDD5', 7, 0],
+          ['qa_subscription', 'subscription', 'Subscription', 'Zap', '#06B6D4', '#ECFEFF', 8, 0],
+          ['qa_inbox', 'inbox', 'Brain Dump', 'Brain', '#64748B', '#F1F5F9', 9, 0],
+        ];
+        shortcuts.forEach(([id, type, label, icon, color, bg, pos, active]) => {
+          tx.executeSql(
+            `INSERT INTO quick_add_shortcuts (id, type, label, icon_name, icon_color, bg_color, position, is_active)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+            [id, type, label, icon, color, bg, pos, active]
+          );
+        });
+      }
+    });
+
+    // Seed Sample Data matching Reference Image if life_items is empty
     tx.executeSql('SELECT COUNT(*) as count FROM life_items;', [], (_, res) => {
       if (res.rows.item(0).count === 0) {
         seedInitialSampleData(tx);
@@ -223,7 +338,6 @@ const seedInitialSampleData = (tx: any) => {
   const past2Days = subDays(now, 2).toISOString();
 
   // 1. Needs Attention Items
-  // Electricity Bill (Bill, due today, ₹2,450)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_bill_1', 'bill', 'Electricity Bill', 'Due today · ₹2,450', 'overdue', 'high', ?, ?, ?);`,
@@ -235,7 +349,6 @@ const seedInitialSampleData = (tx: any) => {
     [todayStr]
   );
 
-  // Passport Renewal (Expiry, expires in 5 days)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_exp_1', 'expiry', 'Passport Renewal', 'Expires in 5 days', 'pending', 'high', ?, ?, ?);`,
@@ -247,7 +360,6 @@ const seedInitialSampleData = (tx: any) => {
     [in5Days]
   );
 
-  // Return Rahul's Charger (Borrow, overdue by 2 days)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_bor_1', 'borrow', 'Return Rahul''s Charger', 'Overdue by 2 days', 'overdue', 'high', ?, ?, ?);`,
@@ -260,36 +372,48 @@ const seedInitialSampleData = (tx: any) => {
   );
 
   // 2. Today Items
-  // Team Meeting (Reminder, 10:00 AM)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_rem_1', 'reminder', 'Team Meeting', 'Work call', 'pending', 'normal', ?, ?, ?);`,
     [today10AM, todayIso, todayIso]
   );
 
-  // Buy Groceries (Task/Checklist, 6:00 PM)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_chk_1', 'checklist', 'Buy Groceries', 'Personal items', 'pending', 'normal', ?, ?, ?);`,
     [today6PM, todayIso, todayIso]
   );
 
-  // Morning Workout (Task, 6:30 AM, Completed)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_tsk_1', 'reminder', 'Morning Workout', 'Health session', 'completed', 'normal', ?, ?, ?);`,
     [today630AM, todayIso, todayIso]
   );
 
+  // Seed Activity Day for today & previous days to calculate demo streak (e.g. 7 day streak)
+  for (let i = 0; i < 7; i++) {
+    const dStr = format(subDays(now, i), 'yyyy-MM-dd');
+    tx.executeSql(
+      `INSERT INTO activity_days (date, completed_items_count, created_at, updated_at)
+       VALUES (?, 2, ?, ?);`,
+      [dStr, todayIso, todayIso]
+    );
+  }
+
+  // Seed Daily Focus
+  tx.executeSql(
+    `INSERT INTO daily_focus (id, date, text, created_at, updated_at)
+     VALUES ('f_today', ?, 'Small steps create big changes.', ?, ?);`,
+    [todayStr, todayIso, todayIso]
+  );
+
   // 3. Upcoming Items
-  // Dentist Appointment (Tomorrow, 10:30 AM)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_up_1', 'reminder', 'Dentist Appointment', '10:30 AM', 'pending', 'normal', ?, ?, ?);`,
     [tomorrow1030AM, todayIso, todayIso]
   );
 
-  // Netflix Subscription (In 5 days, ₹649)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_up_2', 'subscription', 'Netflix Subscription', 'Monthly · ₹649', 'pending', 'normal', ?, ?, ?);`,
@@ -301,14 +425,13 @@ const seedInitialSampleData = (tx: any) => {
     [in5Days]
   );
 
-  // Car Insurance Renewal (In 9 days, ₹6,200)
   tx.executeSql(
     `INSERT INTO life_items (id, type, title, description, status, priority, start_at, created_at, updated_at)
      VALUES ('demo_up_3', 'expiry', 'Car Insurance Renewal', '₹6,200', 'pending', 'normal', ?, ?, ?);`,
     [in9Days, todayIso, todayIso]
   );
 
-  // 4. Sample Expenses (Monthly total ₹12,400)
+  // 4. Sample Expenses
   tx.executeSql(
     `INSERT INTO expenses (id, amount_minor, category_id, description, expense_date, created_at, updated_at)
      VALUES ('exp_1', 540000, 'cat_shopping', 'Shopping', ?, ?, ?);`,
@@ -325,7 +448,7 @@ const seedInitialSampleData = (tx: any) => {
     [todayStr, todayIso, todayIso]
   );
 
-  // 5. Unprocessed Inbox Items (5 items)
+  // 5. Unprocessed Inbox Items
   for (let i = 1; i <= 5; i++) {
     tx.executeSql(
       `INSERT INTO inbox_items (id, content, created_at)

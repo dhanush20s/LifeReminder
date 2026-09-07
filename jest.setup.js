@@ -5,6 +5,7 @@ jest.mock('react-native-share', () => ({
 jest.mock('@notifee/react-native', () => ({
   requestPermission: jest.fn().mockResolvedValue({ authorizationStatus: 1 }),
   createChannel: jest.fn().mockResolvedValue('life_reminders'),
+  setNotificationCategories: jest.fn().mockResolvedValue(undefined),
   createTriggerNotification: jest.fn().mockResolvedValue('notif_123'),
   cancelNotification: jest.fn().mockResolvedValue(undefined),
   cancelAllNotifications: jest.fn().mockResolvedValue(undefined),

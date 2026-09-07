@@ -21,8 +21,8 @@ export const MainTabs = ({ navigation }: any) => {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarActiveTintColor: '#4F46E5',
+          tabBarInactiveTintColor: '#94A3B8',
           tabBarShowLabel: true,
           tabBarStyle: styles.floatingTabBar,
           tabBarLabelStyle: styles.tabBarLabel,
@@ -36,7 +36,12 @@ export const MainTabs = ({ navigation }: any) => {
             tabBarLabel: 'Home',
             tabBarIcon: ({ focused }) => (
               <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                <House size={23} color={focused ? colors.primary : colors.textMuted} fill={focused ? colors.primary : 'transparent'} strokeWidth={focused ? 2.2 : 1.9} />
+                <House 
+                  size={21} 
+                  color={focused ? '#4F46E5' : '#94A3B8'} 
+                  fill={focused ? '#4F46E5' : 'transparent'} 
+                  strokeWidth={focused ? 2.2 : 1.8} 
+                />
               </View>
             ),
           }}
@@ -52,7 +57,7 @@ export const MainTabs = ({ navigation }: any) => {
             tabBarLabel: 'Calendar',
             tabBarIcon: ({ focused }) => (
               <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                <CalendarDays size={20} color={focused ? colors.primary : colors.textMuted} strokeWidth={focused ? 2.3 : 1.8} />
+                <CalendarDays size={20} color={focused ? '#4F46E5' : '#94A3B8'} strokeWidth={focused ? 2.2 : 1.8} />
               </View>
             ),
           }}
@@ -71,7 +76,7 @@ export const MainTabs = ({ navigation }: any) => {
                   onPress={() => setQuickAddVisible(true)}
                   activeOpacity={0.85}
                 >
-                  <Plus size={26} color="#FFFFFF" strokeWidth={2.5} />
+                  <Plus size={24} color="#FFFFFF" strokeWidth={2.8} />
                 </TouchableOpacity>
               </View>
             ),
@@ -86,7 +91,7 @@ export const MainTabs = ({ navigation }: any) => {
             tabBarLabel: 'Manage',
             tabBarIcon: ({ focused }) => (
               <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                <Grid2X2 size={23} color={focused ? colors.primary : colors.textMuted} strokeWidth={focused ? 2.2 : 1.9} />
+                <Grid2X2 size={21} color={focused ? '#4F46E5' : '#94A3B8'} strokeWidth={focused ? 2.2 : 1.8} />
               </View>
             ),
           }}
@@ -100,7 +105,7 @@ export const MainTabs = ({ navigation }: any) => {
             tabBarLabel: 'Settings',
             tabBarIcon: ({ focused }) => (
               <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                <Settings size={23} color={focused ? colors.primary : colors.textMuted} strokeWidth={focused ? 2.2 : 1.9} />
+                <Settings size={21} color={focused ? '#4F46E5' : '#94A3B8'} strokeWidth={focused ? 2.2 : 1.8} />
               </View>
             ),
           }}
@@ -119,27 +124,27 @@ export const MainTabs = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F6F7FE',
   },
   floatingTabBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 16 : 24,
+    bottom: Platform.OS === 'android' ? 14 : 20,
     left: 16,
     right: 16,
-    height: 82,
-    borderRadius: 41,
-    backgroundColor: colors.surface,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     elevation: 8,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     paddingHorizontal: spacing.micro,
-    paddingBottom: 10,
-    paddingTop: 10,
+    paddingBottom: 8,
+    paddingTop: 8,
   },
   tabBarItem: {
     paddingVertical: 2,
@@ -148,37 +153,37 @@ const styles = StyleSheet.create({
   },
   tabBarLabel: {
     ...typography.caption,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
-    marginTop: 3,
+    marginTop: 2,
   },
   iconContainer: {
-    width: 42,
-    height: 32,
+    width: 38,
+    height: 30,
     borderRadius: radii.field,
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconContainerActive: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: '#EEF2FF',
   },
   fabWrapper: {
-    top: -20,
+    top: -16,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 60,
+    width: 56,
   },
   centerFab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#4F46E5',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

@@ -60,7 +60,8 @@ export const LifeItemDetailScreen = ({ route, navigation }: any) => {
 
       setItem(baseItem);
       const details = await lifeItemRepository.findDetailsById(id, baseItem.type);
-      setDetailData(details);
+      const recurrenceRule = await lifeItemRepository.findRecurrenceRuleByLifeItemId(id);
+      setDetailData(details ? { ...details, recurrenceRule } : { recurrenceRule });
       setLoading(false);
     } catch (err: any) {
       console.error('Error loading LifeItem detail:', err);

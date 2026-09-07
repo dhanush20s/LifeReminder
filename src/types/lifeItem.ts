@@ -57,6 +57,7 @@ export interface Reminder {
   reminderOffsetMinutes: number;
   repeatRuleId?: string;
   isEnabled: boolean;
+  notificationId?: string;
 }
 
 export interface ExpenseCategory {

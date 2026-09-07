@@ -1,19 +1,30 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, Animated } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { useAppDispatch } from '../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { updateLifeItemStatus, updateLifeItem, deleteLifeItem, fetchAllLifeItems } from '../../store/slices/lifeItemSlice';
 import { fetchExpenses } from '../../store/slices/expenseSlice';
+import {
+  fetchShortcuts,
+  removeShortcut,
+  addShortcut,
+  reorderShortcuts,
+  persistShortcutsOrder,
+} from '../../store/slices/quickAddSlice';
+import { QuickAddShortcutItem } from '../../database/repositories/quickAddRepository';
 import { homeDashboardService, HomeDashboardData } from './services/homeDashboardService';
 import { colors, spacing, typography, radii } from '../../theme';
 import { useHomeAnimations } from './hooks/useHomeAnimations';
+import { useDayProgress } from './hooks/useDayProgress';
 import { HomeHeader } from './components/HomeHeader';
 import { TopWidgetRow } from './components/TopWidgetRow';
+import { DailyInfoBar } from './components/DailyInfoBar';
 import { QuickAddBar } from './components/QuickAddBar';
 import { NeedsAttentionSection } from './components/NeedsAttentionSection';
 import { TodaySection } from './components/TodaySection';
 import { UpcomingSection } from './components/UpcomingSection';
 import { LifeAtGlanceSection } from './components/LifeAtGlanceSection';
+import { QuickAddManager, QuickAddType } from '../quickAdd/QuickAddManager';
 import { LifeItem } from '../../types/lifeItem';
 import { AlertTriangle, RefreshCw } from 'lucide-react-native';
 
@@ -26,6 +37,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
   const dispatch = useAppDispatch();
   const isFocused = useIsFocused();
   const anim = useHomeAnimations();
+  const { toggleItemComplete, refreshProgress } = useDayProgress();
+  const { activeShortcuts, availableShortcuts } = useAppSelector((state) => state.quickAdd);
 
   const [data, setData] = useState<HomeDashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -54,12 +67,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
 
   useEffect(() => {
     if (isFocused) {
+      dispatch(fetchShortcuts());
+      refreshProgress();
       loadDashboardData(true);
     }
-  }, [isFocused, loadDashboardData]);
+  }, [isFocused, dispatch, loadDashboardData, refreshProgress]);
 
   const handleToggleCompleteToday = async (item: LifeItem) => {
-    // Instant optimistic local state update for 0-latency UI
+    // Instant optimistic UI update for 0-latency UI
     if (data) {
       const nextStatus = item.status === 'completed' ? 'pending' : 'completed';
       const updatedToday = data.todayItems.map((t) =>
@@ -68,10 +83,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
       setData({ ...data, todayItems: updatedToday });
     }
 
-    const nextStatus = item.status === 'completed' ? 'pending' : 'completed';
-    await dispatch(updateLifeItemStatus({ id: item.id, status: nextStatus })).unwrap();
-    dispatch(fetchAllLifeItems());
-    dispatch(fetchExpenses());
+    // Process completion via useDayProgress hook (Redux Thunk + SQLite persistence)
+    await toggleItemComplete(item);
     loadDashboardData(false);
   };
 
@@ -79,19 +92,28 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
     navigation.navigate('LifeItemDetail', { id });
   };
 
+  const [activeQuickAddSheet, setActiveQuickAddSheet] = useState<QuickAddType>(null);
+
   const handleQuickAddType = (type: string) => {
-    if (type === 'reminder' || type === 'task') {
-      navigation.navigate('CreateReminder');
-    } else if (type === 'expense') {
-      navigation.navigate('AddExpense');
-    } else if (type === 'bill') {
-      navigation.navigate('Bills');
-    } else {
-      onOpenQuickAdd();
-    }
+    setActiveQuickAddSheet(type as QuickAddType);
   };
 
-  // Context Actions for Upcoming Section 3-Dot Menu
+  const handleRemoveShortcut = (id: string) => {
+    dispatch(removeShortcut(id));
+  };
+
+  const handleAddShortcut = (item: QuickAddShortcutItem) => {
+    dispatch(addShortcut(item));
+  };
+
+  const handleReorderShortcuts = (fromIndex: number, toIndex: number) => {
+    dispatch(reorderShortcuts({ fromIndex, toIndex }));
+  };
+
+  const handleSaveCustomization = () => {
+    dispatch(persistShortcutsOrder({ active: activeShortcuts, available: availableShortcuts }));
+  };
+
   const handleEditUpcoming = (id: string) => {
     navigation.navigate('EditLifeItem', { id });
   };
@@ -158,21 +180,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
           />
         </Animated.View>
 
-        {/* Section 2: Top Dual Widgets (Weather & Quote) */}
+        {/* Section 2: Top Dual Hero Cards (DayProgressHero & NextUp Carousel) */}
         <Animated.View style={anim.topWidgetStyle}>
-          <TopWidgetRow />
+          <TopWidgetRow navigation={navigation} />
         </Animated.View>
 
-        {/* Section 3: Quick Add Bar */}
+        {/* Section 3: Daily Info Bar (Weather [Optional] / Focus Time, Daily Focus, Daily Streak) */}
         <Animated.View style={anim.quickAddStyle}>
+          <DailyInfoBar navigation={navigation} />
+        </Animated.View>
+
+        {/* Section 4: Quick Add Bar */}
+        <Animated.View style={anim.attentionStyle}>
           <QuickAddBar
+            shortcuts={activeShortcuts}
+            availableShortcuts={availableShortcuts}
             onSelectType={handleQuickAddType}
             onOpenQuickAdd={onOpenQuickAdd}
+            onRemoveShortcut={handleRemoveShortcut}
+            onAddShortcut={handleAddShortcut}
+            onReorderShortcuts={handleReorderShortcuts}
+            onSaveCustomization={handleSaveCustomization}
           />
         </Animated.View>
 
-        {/* Section 4: Needs Attention */}
-        <Animated.View style={anim.attentionStyle}>
+        {/* Section 5: Needs Attention */}
+        <Animated.View style={anim.todayStyle}>
           <NeedsAttentionSection
             items={data.attentionItems}
             onItemPress={handleItemPress}
@@ -180,8 +213,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
           />
         </Animated.View>
 
-        {/* Section 5: Today Section */}
-        <Animated.View style={anim.todayStyle}>
+        {/* Section 6: Today Section */}
+        <Animated.View style={anim.upcomingStyle}>
           <TodaySection
             items={data.todayItems}
             onItemPress={handleItemPress}
@@ -190,8 +223,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
           />
         </Animated.View>
 
-        {/* Section 6: Upcoming Section with 3-Dot Context Menu Actions */}
-        <Animated.View style={anim.upcomingStyle}>
+        {/* Section 7: Upcoming Section */}
+        <Animated.View style={anim.glanceStyle}>
           <UpcomingSection
             items={data.upcomingItems}
             onItemPress={handleItemPress}
@@ -203,18 +236,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
           />
         </Animated.View>
 
-        {/* Section 7: Life at a Glance */}
-        <Animated.View style={anim.glanceStyle}>
-          <LifeAtGlanceSection
-            monthlySpendingMinor={data.monthlySpendingMinor}
-            upcomingBillsCount={data.upcomingBillsCount}
-            inboxCount={data.inboxCount}
-            onExpensesPress={() => navigation.navigate('Expenses')}
-            onBillsPress={() => navigation.navigate('Bills')}
-            onInboxPress={() => navigation.navigate('Inbox')}
-          />
-        </Animated.View>
+        {/* Section 8: Life at a Glance */}
+        <LifeAtGlanceSection
+          monthlySpendingMinor={data.monthlySpendingMinor}
+          upcomingBillsCount={data.upcomingBillsCount}
+          inboxCount={data.inboxCount}
+          onExpensesPress={() => navigation.navigate('Expenses')}
+          onBillsPress={() => navigation.navigate('Bills')}
+          onInboxPress={() => navigation.navigate('Inbox')}
+        />
       </ScrollView>
+
+      <QuickAddManager
+        activeType={activeQuickAddSheet}
+        onClose={() => setActiveQuickAddSheet(null)}
+        onSelectAction={(type) => setActiveQuickAddSheet(type)}
+      />
     </SafeAreaView>
   );
 };
@@ -222,7 +259,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation, onOpenQuickA
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F6F7FE',
   },
   container: {
     paddingHorizontal: spacing.default,

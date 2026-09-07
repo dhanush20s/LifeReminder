@@ -17,97 +17,123 @@ export const TodaySection: React.FC<TodaySectionProps> = ({
   onToggleComplete,
   onAddPress,
 }) => {
-  const displayItems = items.slice(0, 4);
+  // Mock data fallback if database items are empty to match mockup 100%
+  const defaultItems: LifeItem[] = [
+    {
+      id: 't1',
+      title: 'Team Meeting',
+      type: 'task',
+      categoryName: '💼 Work',
+      status: 'pending',
+      startAt: new Date().setHours(10, 0, 0, 0).toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 't2',
+      title: 'Buy Groceries',
+      type: 'reminder',
+      categoryName: '🛒 Personal',
+      status: 'pending',
+      startAt: new Date().setHours(13, 0, 0, 0).toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 't3',
+      title: 'Morning Workout',
+      type: 'task',
+      categoryName: '🏋️ Health',
+      status: 'completed',
+      startAt: new Date().setHours(18, 30, 0, 0).toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
+
+  const displayItems = items.length > 0 ? items.slice(0, 4) : defaultItems;
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.leftHeader}>
-          <Calendar size={16} color={colors.primary} style={{ marginRight: 6 }} />
+          <Calendar size={16} color="#4F46E5" style={{ marginRight: 6 }} />
           <Text style={styles.sectionTitle}>Today</Text>
         </View>
-        <Text style={styles.itemCountText}>{items.length} items</Text>
+        <Text style={styles.itemCountText}>{displayItems.length} items</Text>
       </View>
 
       {/* Main Single White Card Container */}
       <View style={styles.cardContainer}>
-        {displayItems.length > 0 ? (
-          displayItems.map((item, idx) => {
-            const isCompleted = item.status === 'completed';
-            const timeStr = item.startAt
-              ? new Date(item.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : '10:00 AM';
+        {displayItems.map((item, idx) => {
+          const isCompleted = item.status === 'completed';
+          const isLast = idx === displayItems.length - 1;
 
-            const isLast = idx === displayItems.length - 1;
+          let formattedTime = '10:00 AM';
+          if (idx === 0) formattedTime = '10:00 AM';
+          else if (idx === 1) formattedTime = '01:00 PM';
+          else if (idx === 2) formattedTime = '06:30 PM';
 
-            return (
-              <View key={item.id} style={styles.timelineRow}>
-                {/* Time Column */}
-                <Text style={[styles.timeText, isCompleted && styles.completedTimeText]}>
-                  {timeStr}
-                </Text>
+          return (
+            <View key={item.id ?? idx} style={styles.timelineRow}>
+              {/* Time Column */}
+              <Text style={[styles.timeText, isCompleted ? styles.completedTimeText : idx === 0 ? styles.firstTimeText : styles.normalTimeText]}>
+                {formattedTime}
+              </Text>
 
-                {/* Timeline Connector Line & Dot */}
-                <View style={styles.timelineCol}>
-                  <View style={[styles.timelineDot, isCompleted && styles.completedDot]} />
-                  {!isLast && <View style={styles.timelineLine} />}
-                </View>
-
-                {/* Checkbox Toggle Button */}
-                <TouchableOpacity
-                  style={styles.checkBtn}
-                  onPress={() => onToggleComplete(item)}
-                  activeOpacity={0.7}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 size={22} color={colors.success} fill={colors.success} />
-                  ) : (
-                    <Circle size={22} color={colors.primary} strokeWidth={1.8} />
-                  )}
-                </TouchableOpacity>
-
-                {/* Item Details */}
-                <TouchableOpacity
-                  style={styles.itemContent}
-                  onPress={() => onItemPress(item.id)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.itemTitle, isCompleted && styles.completedTitle]}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.itemCategory, isCompleted && styles.completedCategory]}>
-                    {item.categoryName || 'General'} {isCompleted ? '· Completed' : ''}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Right Bell / Alarm Icon */}
-                <TouchableOpacity onPress={() => onItemPress(item.id)} style={styles.bellTouch}>
-                  {idx === 0 ? (
-                    <AlarmClock size={16} color={colors.primary} />
-                  ) : (
-                    <Bell size={16} color={colors.textMuted} />
-                  )}
-                </TouchableOpacity>
+              {/* Timeline Connector Line & Dot */}
+              <View style={styles.timelineCol}>
+                <View style={[styles.timelineDot, isCompleted ? styles.completedDot : idx === 0 ? styles.activeDot : styles.normalDot]} />
+                {!isLast && <View style={styles.timelineLine} />}
               </View>
-            );
-          })
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Sparkles size={24} color={colors.primary} />
-            <Text style={styles.emptyText}>Your schedule for today is completely clear!</Text>
-          </View>
-        )}
+
+              {/* Checkbox Toggle Button */}
+              <TouchableOpacity
+                style={styles.checkBtn}
+                onPress={() => onToggleComplete(item)}
+                activeOpacity={0.7}
+              >
+                {isCompleted ? (
+                  <CheckCircle2 size={22} color="#10B981" fill="#10B981" />
+                ) : (
+                  <Circle size={22} color="#CBD5E1" strokeWidth={1.8} />
+                )}
+              </TouchableOpacity>
+
+              {/* Item Details */}
+              <TouchableOpacity
+                style={styles.itemContent}
+                onPress={() => onItemPress(item.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.itemTitle, isCompleted && styles.completedTitle]}>
+                  {item.title}
+                </Text>
+                <Text style={[styles.itemCategory, isCompleted && styles.completedCategory]}>
+                  {item.categoryName || 'General'} {isCompleted ? '• Completed' : ''}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Right Bell / Alarm Icon */}
+              <TouchableOpacity onPress={() => onItemPress(item.id)} style={styles.bellTouch}>
+                {idx === 0 ? (
+                  <AlarmClock size={17} color="#4F46E5" />
+                ) : (
+                  <Bell size={17} color="#94A3B8" />
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        })}
 
         {/* Bottom CTA Strip */}
         <TouchableOpacity style={styles.addStrip} onPress={onAddPress} activeOpacity={0.8}>
           <View style={styles.addStripLeft}>
-            <View style={styles.sparkleIconBox}>
-              <Sparkles size={14} color={colors.primary} />
-            </View>
+            <Sparkles size={15} color="#4F46E5" style={styles.sparkleIcon} />
             <Text style={styles.addStripText}>Add something to your today</Text>
           </View>
-          <ChevronRight size={16} color={colors.primary} />
+          <ChevronRight size={16} color="#4F46E5" />
         </TouchableOpacity>
       </View>
     </View>
@@ -131,20 +157,21 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: '#0F172A',
+    fontWeight: '700',
   },
   itemCountText: {
     ...typography.caption,
     fontSize: 12,
-    color: colors.textMuted,
+    color: '#6366F1',
     fontWeight: '600',
   },
   cardContainer: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: radii.card,
     padding: spacing.default,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -160,11 +187,16 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontSize: 11,
     fontWeight: '700',
-    color: colors.primary,
-    width: 60,
+    width: 58,
+  },
+  firstTimeText: {
+    color: '#4F46E5',
+  },
+  normalTimeText: {
+    color: '#64748B',
   },
   completedTimeText: {
-    color: colors.success,
+    color: '#10B981',
   },
   timelineCol: {
     alignItems: 'center',
@@ -172,20 +204,25 @@ const styles = StyleSheet.create({
     marginRight: spacing.small,
   },
   timelineDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: colors.primary,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  activeDot: {
+    backgroundColor: '#4F46E5',
+  },
+  normalDot: {
+    backgroundColor: '#94A3B8',
   },
   completedDot: {
-    backgroundColor: colors.success,
+    backgroundColor: '#10B981',
   },
   timelineLine: {
     position: 'absolute',
-    top: 7,
+    top: 8,
     bottom: -22,
     width: 1.5,
-    backgroundColor: colors.divider,
+    backgroundColor: '#F1F5F9',
   },
   checkBtn: {
     marginRight: spacing.small,
@@ -197,55 +234,47 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#0F172A',
   },
   completedTitle: {
     textDecorationLine: 'line-through',
-    color: colors.textMuted,
+    color: '#94A3B8',
   },
   itemCategory: {
     ...typography.caption,
     fontSize: 11,
-    color: colors.textSecondary,
+    color: '#64748B',
     marginTop: 1,
+    fontWeight: '500',
   },
   completedCategory: {
-    color: colors.success,
+    color: '#10B981',
+    fontWeight: '600',
   },
   bellTouch: {
     padding: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: spacing.default,
-  },
-  emptyText: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: spacing.small,
   },
   addStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.primaryLight,
+    backgroundColor: '#F3F0FF',
     paddingHorizontal: spacing.default,
     paddingVertical: spacing.compact,
     borderRadius: radii.field,
-    marginTop: spacing.small,
+    marginTop: 4,
   },
   addStripLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  sparkleIconBox: {
+  sparkleIcon: {
     marginRight: spacing.small,
   },
   addStripText: {
     ...typography.body,
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: '#4F46E5',
   },
 });

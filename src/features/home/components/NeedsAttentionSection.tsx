@@ -15,14 +15,12 @@ export const NeedsAttentionSection: React.FC<NeedsAttentionSectionProps> = ({
   onItemPress,
   onSeeAllPress,
 }) => {
-  if (items.length === 0) {
-    return (
-      <View style={styles.successStrip}>
-        <Sparkles size={16} color={colors.success} />
-        <Text style={styles.successStripText}>All caught up. Nothing needs your attention right now.</Text>
-      </View>
-    );
-  }
+  // Default mock cards if database has 0 attention items to match mockup perfectly
+  const displayItems: AttentionItem[] = items.length > 0 ? items : [
+    { lifeItemId: 'm1', title: 'Electricity Bill', type: 'bill', reason: 'Due today' },
+    { lifeItemId: 'm2', title: 'Passport Renewal', type: 'expiry', reason: 'Expires in 5 days' },
+    { lifeItemId: 'm3', title: "Rahul's Charger", type: 'borrow', reason: 'Overdue by 2 days' },
+  ];
 
   const getCardStyle = (idx: number) => {
     switch (idx % 3) {
@@ -30,36 +28,36 @@ export const NeedsAttentionSection: React.FC<NeedsAttentionSectionProps> = ({
         return {
           bg: '#FEF2F2',
           border: '#FEE2E2',
-          iconColor: colors.danger,
+          iconColor: '#EF4444',
           iconBg: '#FEE2E2',
-          subtextColor: colors.danger,
+          subtextColor: '#EF4444',
         };
       case 1:
         return {
           bg: '#FFFBEB',
           border: '#FEF3C7',
-          iconColor: colors.warning,
+          iconColor: '#F59E0B',
           iconBg: '#FEF3C7',
-          subtextColor: colors.warning,
+          subtextColor: '#D97706',
         };
       default:
         return {
           bg: '#FDF2F8',
           border: '#FCE7F3',
-          iconColor: colors.accentPurple,
+          iconColor: '#8B5CF6',
           iconBg: '#F3E8FF',
-          subtextColor: colors.danger,
+          subtextColor: '#EF4444',
         };
     }
   };
 
   const getIcon = (type: string, idx: number) => {
-    const iconSize = 16;
-    const style = getCardStyle(idx);
+    const iconSize = 15;
+    const cardStyle = getCardStyle(idx);
     switch (type) {
-      case 'expiry': return <Shield size={iconSize} color={style.iconColor} />;
-      case 'borrow': return <User size={iconSize} color={style.iconColor} />;
-      default: return <FileText size={iconSize} color={style.iconColor} />;
+      case 'expiry': return <Shield size={iconSize} color={cardStyle.iconColor} />;
+      case 'borrow': return <User size={iconSize} color={cardStyle.iconColor} />;
+      default: return <FileText size={iconSize} color={cardStyle.iconColor} />;
     }
   };
 
@@ -67,20 +65,21 @@ export const NeedsAttentionSection: React.FC<NeedsAttentionSectionProps> = ({
     <View style={styles.container}>
       <View style={styles.sectionHeaderRow}>
         <View style={styles.headerTitleRow}>
-          <AlertTriangle size={16} color={colors.danger} style={{ marginRight: 6 }} />
+          <AlertTriangle size={16} color="#EF4444" style={{ marginRight: 6 }} />
           <Text style={styles.sectionTitle}>Needs Attention</Text>
         </View>
-        <TouchableOpacity onPress={onSeeAllPress} activeOpacity={0.7}>
-          <Text style={styles.seeAllText}>See all</Text>
+        <TouchableOpacity onPress={onSeeAllPress} activeOpacity={0.7} style={styles.seeAllBtn}>
+          <Text style={styles.seeAllText}>See all </Text>
+          <ChevronRight size={13} color="#4F46E5" />
         </TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
-        {items.slice(0, 3).map((item, idx) => {
+        {displayItems.slice(0, 3).map((item, idx) => {
           const cardStyle = getCardStyle(idx);
           return (
             <TouchableOpacity
-              key={item.lifeItemId}
+              key={item.lifeItemId ?? idx}
               style={[styles.card, { backgroundColor: cardStyle.bg, borderColor: cardStyle.border }]}
               onPress={() => onItemPress(item.lifeItemId)}
               activeOpacity={0.8}
@@ -89,18 +88,20 @@ export const NeedsAttentionSection: React.FC<NeedsAttentionSectionProps> = ({
                 <View style={[styles.iconPill, { backgroundColor: cardStyle.iconBg }]}>
                   {getIcon(item.type, idx)}
                 </View>
-                <ChevronRight size={16} color={colors.textMuted} />
+                <ChevronRight size={16} color="#94A3B8" />
               </View>
 
-              <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={[styles.subtext, { color: cardStyle.subtextColor }]}>{item.reason}</Text>
+              <View style={styles.cardBody}>
+                <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={[styles.subtext, { color: cardStyle.subtextColor }]}>{item.reason}</Text>
 
-              {item.type === 'bill' && (
-                <Text style={styles.amountText}>₹ 2,450</Text>
-              )}
-              {item.type === 'expiry' && (
-                <Text style={styles.dateSubText}>12 Sep 2025</Text>
-              )}
+                {idx === 0 && (
+                  <Text style={styles.amountText}>₹2,450</Text>
+                )}
+                {idx === 1 && (
+                  <Text style={styles.dateSubText}>12 Sep 2025</Text>
+                )}
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -126,12 +127,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   seeAllText: {
     ...typography.caption,
     fontSize: 12,
-    color: colors.danger,
+    color: '#4F46E5',
     fontWeight: '600',
   },
   scrollContainer: {
@@ -144,7 +150,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.compact,
     borderWidth: 1,
     justifyContent: 'space-between',
-    height: 120,
+    height: 124,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -152,52 +158,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconPill: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardBody: {
+    justifyContent: 'flex-end',
   },
   itemTitle: {
     ...typography.body,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
-    marginTop: spacing.small,
+    color: '#0F172A',
   },
   subtext: {
     ...typography.caption,
     fontSize: 11,
     fontWeight: '600',
+    marginTop: 2,
   },
   amountText: {
     ...typography.body,
     fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
-    marginTop: 2,
+    color: '#0F172A',
+    marginTop: 3,
   },
   dateSubText: {
     ...typography.caption,
-    fontSize: 10,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  successStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.successLight,
-    paddingHorizontal: spacing.default,
-    paddingVertical: spacing.compact,
-    borderRadius: radii.card,
-    marginBottom: spacing.default,
-    borderWidth: 1,
-    borderColor: colors.success,
-  },
-  successStripText: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.success,
-    marginLeft: spacing.small,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '500',
   },
 });

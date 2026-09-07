@@ -1,6 +1,6 @@
 import { getDB } from '../connection';
 import { Expense, ExpenseCategory } from '../../types/lifeItem';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID as uuidv4 } from '../../utils/uuid';
 
 export const expenseRepository = {
   async create(expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>): Promise<Expense> {

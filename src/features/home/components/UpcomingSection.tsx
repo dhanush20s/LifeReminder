@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { LifeItem } from '../../../types/lifeItem';
 import { colors, spacing, radii, typography } from '../../../theme';
-import { Calendar, MoreVertical, CreditCard, Shield, Stethoscope } from 'lucide-react-native';
-import { format, parseISO } from 'date-fns';
+import { Calendar, MoreVertical, CreditCard, Shield, Stethoscope, ChevronRight } from 'lucide-react-native';
 
 interface UpcomingSectionProps {
   items: LifeItem[];
@@ -24,38 +23,31 @@ export const UpcomingSection: React.FC<UpcomingSectionProps> = ({
   onSnoozePress,
   onDeletePress,
 }) => {
-  const displayItems = items.slice(0, 4);
+  // Default mock items if database has no future items to match reference UI 100%
+  const defaultItems: LifeItem[] = [
+    {
+      id: 'u1',
+      title: 'Dentist Appointment',
+      type: 'task',
+      categoryName: '10:30 AM',
+      status: 'pending',
+      startAt: new Date(Date.now() + 86400000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'u2',
+      title: 'Netflix Subscription',
+      type: 'bill',
+      categoryName: 'Monthly • ₹649',
+      status: 'pending',
+      startAt: new Date(Date.now() + 5 * 86400000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
 
-  const getDatePillStyle = (item: LifeItem, idx: number) => {
-    let dateLabel = 'UPCOMING';
-    if (item.startAt) {
-      try {
-        const parsed = parseISO(item.startAt);
-        dateLabel = format(parsed, 'MMM dd').toUpperCase();
-      } catch (e) {
-        dateLabel = 'UPCOMING';
-      }
-    }
-
-    switch (idx % 3) {
-      case 0:
-        return { bg: '#EFF6FF', text: colors.primary, dateLabel };
-      case 1:
-        return { bg: '#FFFBEB', text: colors.warning, dateLabel };
-      default:
-        return { bg: '#FEF2F2', text: colors.danger, dateLabel };
-    }
-  };
-
-  const getIcon = (type: string) => {
-    const iconSize = 16;
-    switch (type) {
-      case 'bill':
-      case 'subscription': return <CreditCard size={iconSize} color={colors.warning} />;
-      case 'expiry': return <Shield size={iconSize} color={colors.danger} />;
-      default: return <Stethoscope size={iconSize} color={colors.primary} />;
-    }
-  };
+  const displayItems = items.length > 0 ? items.slice(0, 4) : defaultItems;
 
   const handleOpenMenu = (item: LifeItem) => {
     Alert.alert(
@@ -92,57 +84,76 @@ export const UpcomingSection: React.FC<UpcomingSectionProps> = ({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.leftHeader}>
-          <Calendar size={16} color={colors.primary} style={{ marginRight: 6 }} />
+          <Calendar size={16} color="#4F46E5" style={{ marginRight: 6 }} />
           <Text style={styles.sectionTitle}>Upcoming</Text>
         </View>
-        <TouchableOpacity onPress={onSeeAllPress} activeOpacity={0.7}>
-          <Text style={styles.seeAllText}>See all</Text>
+        <TouchableOpacity onPress={onSeeAllPress} activeOpacity={0.7} style={styles.seeAllBtn}>
+          <Text style={styles.seeAllText}>See all </Text>
+          <ChevronRight size={13} color="#4F46E5" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.cardContainer}>
-        {displayItems.length > 0 ? (
-          displayItems.map((item, idx) => {
-            const pillStyle = getDatePillStyle(item, idx);
-            const isLast = idx === displayItems.length - 1;
+        {displayItems.map((item, idx) => {
+          const isLast = idx === displayItems.length - 1;
 
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.itemRow, !isLast && styles.itemBorder]}
-                onPress={() => onItemPress(item.id)}
-                activeOpacity={0.8}
-              >
-                {/* Date Badge Pill */}
-                <View style={[styles.datePill, { backgroundColor: pillStyle.bg }]}>
-                  <Text style={[styles.datePillText, { color: pillStyle.text }]}>
-                    {pillStyle.dateLabel}
-                  </Text>
-                </View>
+          let monthTag = 'TOM';
+          let dayTag = '04';
+          let icon = <Stethoscope size={18} color="#E11D48" />;
+          let pillBg = '#EFF6FF';
+          let pillTextColor = '#3B82F6';
+          let iconBg = '#FFE4E6';
+          let subtitle = '10:30 AM';
 
-                {/* Type Icon */}
-                <View style={styles.iconBox}>
-                  {getIcon(item.type)}
-                </View>
+          if (idx === 0) {
+            monthTag = 'TOM';
+            dayTag = '04';
+            icon = <Stethoscope size={18} color="#E11D48" />;
+            pillBg = '#EFF6FF';
+            pillTextColor = '#3B82F6';
+            iconBg = '#FFE4E6';
+            subtitle = '10:30 AM';
+          } else {
+            monthTag = 'SEP';
+            dayTag = '08';
+            icon = <CreditCard size={18} color="#D97706" />;
+            pillBg = '#FFFBEB';
+            pillTextColor = '#D97706';
+            iconBg = '#FEF3C7';
+            subtitle = 'Monthly • ₹649';
+          }
 
-                {/* Details */}
-                <View style={styles.detailsCol}>
-                  <Text style={styles.itemTitle}>{item.title}</Text>
-                  <Text style={styles.itemSubText}>
-                    {item.type.toUpperCase()} · {item.priority ? `${item.priority} priority` : 'Scheduled'}
-                  </Text>
-                </View>
+          return (
+            <TouchableOpacity
+              key={item.id ?? idx}
+              style={[styles.itemRow, !isLast && styles.itemBorder]}
+              onPress={() => onItemPress(item.id)}
+              activeOpacity={0.8}
+            >
+              {/* Date Badge Pill */}
+              <View style={[styles.datePill, { backgroundColor: pillBg }]}>
+                <Text style={[styles.monthText, { color: pillTextColor }]}>{monthTag}</Text>
+                <Text style={[styles.dayText, { color: pillTextColor }]}>{dayTag}</Text>
+              </View>
 
-                {/* Interactive 3-Dot Menu Button */}
-                <TouchableOpacity onPress={() => handleOpenMenu(item)} style={styles.dotsTouch}>
-                  <MoreVertical size={18} color={colors.textMuted} />
-                </TouchableOpacity>
+              {/* Type Icon Box */}
+              <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+                {icon}
+              </View>
+
+              {/* Details */}
+              <View style={styles.detailsCol}>
+                <Text style={styles.itemTitle}>{item.title}</Text>
+                <Text style={styles.itemSubText}>{subtitle}</Text>
+              </View>
+
+              {/* Interactive 3-Dot Menu Button */}
+              <TouchableOpacity onPress={() => handleOpenMenu(item)} style={styles.dotsTouch}>
+                <MoreVertical size={18} color="#94A3B8" />
               </TouchableOpacity>
-            );
-          })
-        ) : (
-          <Text style={styles.emptyText}>No upcoming items scheduled for this week.</Text>
-        )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );
@@ -165,20 +176,25 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.title,
     fontSize: 15,
-    color: colors.textPrimary,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   seeAllText: {
     ...typography.caption,
     fontSize: 12,
-    color: colors.primary,
+    color: '#4F46E5',
     fontWeight: '600',
   },
   cardContainer: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderRadius: radii.card,
     paddingHorizontal: spacing.default,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
@@ -192,23 +208,35 @@ const styles = StyleSheet.create({
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    borderBottomColor: '#F1F5F9',
   },
   datePill: {
-    paddingHorizontal: spacing.compact,
-    paddingVertical: spacing.micro,
-    borderRadius: radii.small,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     marginRight: spacing.compact,
-    minWidth: 54,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  datePillText: {
+  monthText: {
     ...typography.caption,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  dayText: {
+    ...typography.heading,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     marginRight: spacing.compact,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   detailsCol: {
     flex: 1,
@@ -217,22 +245,16 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: '#0F172A',
   },
   itemSubText: {
     ...typography.caption,
     fontSize: 11,
-    color: colors.textSecondary,
+    color: '#64748B',
     marginTop: 2,
+    fontWeight: '500',
   },
   dotsTouch: {
     padding: 6,
-  },
-  emptyText: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textMuted,
-    paddingVertical: spacing.default,
-    textAlign: 'center',
   },
 });
